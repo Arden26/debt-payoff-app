@@ -1,0 +1,12 @@
+name = "debt-payoff-app"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+# After running `npm run cf:kv:create`, paste the resulting id below:
+# [[kv_namespaces]]
+# binding = "DEBT_PAYOFF_KV"
+# id = "PASTE_YOUR_KV_ID_HERE"
+# preview_id = "PASTE_YOUR_PREVIEW_KV_ID_HERE"
+
+[vars]
+ENVIRONMENT = "production"
