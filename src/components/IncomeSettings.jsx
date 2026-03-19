@@ -4,12 +4,12 @@ export function IncomeSettings({ income, onChange }) {
   const set = (field) => (e) =>
     onChange((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const rawAmount = parseFloat(income.amount) || 0;
+  const rawAmount = parseFloat(income.monthlyIncome) || 0;
   const monthlyIncome =
-    income.schedule === 'biweekly' ? biweeklyToMonthly(rawAmount) : rawAmount;
+    income.paySchedule === 'biweekly' ? biweeklyToMonthly(rawAmount) : rawAmount;
 
   const budget = calcBudgetRecommendation(monthlyIncome);
-  const extraPayment = parseFloat(income.extraPayment) || 0;
+  const extraPayment = parseFloat(income.extraDebtPayment) || 0;
   const totalBudget = monthlyIncome + extraPayment;
 
   return (
@@ -18,16 +18,16 @@ export function IncomeSettings({ income, onChange }) {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="label">
-            {income.schedule === 'biweekly' ? 'Paycheck Amount' : 'Monthly Income'} ($)
+            {income.paySchedule === 'biweekly' ? 'Paycheck Amount' : 'Monthly Income'} ($)
           </label>
           <input
             className="input"
             type="number"
             min="0"
             step="100"
-            placeholder={income.schedule === 'biweekly' ? '1500' : '3000'}
-            value={income.amount}
-            onChange={set('amount')}
+            placeholder={income.paySchedule === 'biweekly' ? '1500' : '3000'}
+            value={income.monthlyIncome}
+            onChange={set('monthlyIncome')}
           />
         </div>
 
@@ -35,8 +35,8 @@ export function IncomeSettings({ income, onChange }) {
           <label className="label">Pay Schedule</label>
           <select
             className="input"
-            value={income.schedule}
-            onChange={set('schedule')}
+            value={income.paySchedule}
+            onChange={set('paySchedule')}
           >
             <option value="monthly">Monthly</option>
             <option value="biweekly">Biweekly (×26)</option>
@@ -45,7 +45,7 @@ export function IncomeSettings({ income, onChange }) {
       </div>
 
       {/* Monthly equivalent for biweekly */}
-      {income.schedule === 'biweekly' && rawAmount > 0 && (
+      {income.paySchedule === 'biweekly' && rawAmount > 0 && (
         <p className="text-xs text-slate-400 -mt-2">
           ≈ {formatCurrency(monthlyIncome)}/mo (26 checks ÷ 12)
         </p>
@@ -65,8 +65,8 @@ export function IncomeSettings({ income, onChange }) {
             min="0"
             max={Math.round(monthlyIncome * 0.5)}
             step="25"
-            value={income.extraPayment}
-            onChange={set('extraPayment')}
+            value={income.extraDebtPayment}
+            onChange={set('extraDebtPayment')}
           />
           <div className="flex justify-between text-xs text-slate-400 mt-0.5">
             <span>$0</span>

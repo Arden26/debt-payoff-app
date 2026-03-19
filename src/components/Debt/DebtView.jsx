@@ -10,6 +10,7 @@ import { Summary } from '../Summary.jsx';
 import { ExportButtons } from '../ExportButtons.jsx';
 import { simulatePayoff, STRATEGIES, generateId, biweeklyToMonthly } from '../../utils/debtCalc.js';
 import { Modal } from '../Shared/Modal.jsx';
+import { SmartAdvice } from './SmartAdvice.jsx';
 
 const TABS = [
   { id: 'chart', label: 'Chart' },
@@ -85,6 +86,9 @@ export function DebtView() {
             <h2 className="font-semibold text-slate-800 mb-3">Strategy</h2>
             <StrategyPanel strategy={strategy} onChange={setStrategy} debts={debts} monthlyBudget={monthlyBudget} />
           </div>
+
+          {/* Smart Analysis */}
+          <SmartAdvice debts={debts} monthlyBudget={monthlyBudget} strategy={strategy} />
         </div>
 
         {/* Right: results */}
