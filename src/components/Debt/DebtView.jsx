@@ -22,6 +22,7 @@ export function DebtView() {
   const { state, dispatch } = useFinance();
   const [showForm, setShowForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState(null);
+  const [payingDebt, setPayingDebt] = useState(null);
   const [activeTab, setActiveTab] = useState('chart');
 
   const income = state.settings;
@@ -67,6 +68,7 @@ export function DebtView() {
               debts={debts}
               onEdit={(d) => { setEditingDebt(d); setShowForm(false); }}
               onDelete={(id) => dispatch({ type: 'DELETE_DEBT', id })}
+              onPay={(d) => setPayingDebt(d)}
             />
             {debts.length === 0 && !showForm && (
               <button onClick={() => setShowForm(true)} className="w-full mt-1 p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm hover:border-blue-300 hover:text-blue-500 transition-colors">
@@ -134,7 +136,105 @@ export function DebtView() {
           <DebtForm initialValues={editingDebt} onSave={handleUpdateDebt} onCancel={() => setEditingDebt(null)} isEditing />
         </Modal>
       )}
+      {payingDebt && (
+        <Modal title={`Pay — ${payingDebt.name}`} onClose={() => setPayingDebt(null)}>
+          <DebtPaymentForm
+            debt={payingDebt}
+            onSave={(amount, date, notes) => {
+              dispatch({ type: 'MAKE_DEBT_PAYMENT', debtId: payingDebt.id, debtName: payingDebt.name, amount, date, notes });
+              setPayingDebt(null);
+            }}
+            onCancel={() => setPayingDebt(null)}
+          />
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function DebtPaymentForm({ debt, onSave, onCancel }) {
+  const balance = parseFloat(debt.balance || 0);
+  const [amount, setAmount] = useState(String(debt.minPayment || ''));
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState('');
+
+  const paid = parseFloat(debt.originalBalance || debt.balance || 0) - balance;
+  const paidPct = (debt.originalBalance || balance) > 0
+    ? Math.min(100, (paid / (debt.originalBalance || balance)) * 100)
+    : 0;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const val = parseFloat(amount);
+    if (isNaN(val) || val <= 0) { setError('Enter a valid amount'); return; }
+    if (val > balance) { setError(`Amount exceeds remaining balance of $${balance.toFixed(2)}`); return; }
+    onSave(val, date, notes);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Remaining balance info */}
+      <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-500">Remaining balance</span>
+          <span className="font-semibold text-slate-800">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        </div>
+        {paidPct > 0 && (
+          <>
+            <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${paidPct}%` }} />
+            </div>
+            <p className="text-xs text-slate-400 text-right">{paidPct.toFixed(1)}% paid off so far</p>
+          </>
+        )}
+      </div>
+
+      {/* Quick amount buttons */}
+      <div>
+        <label className="label">Payment Amount ($)</label>
+        <div className="flex gap-2 mb-2">
+          {[debt.minPayment, debt.minPayment * 2, balance].filter(Boolean).map((v, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => { setAmount(String(v.toFixed(2))); setError(''); }}
+              className="flex-1 py-1.5 text-xs rounded-lg bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors font-medium"
+            >
+              {i === 0 ? 'Min' : i === 1 ? '2× Min' : 'Full'}<br />
+              <span className="font-normal">${v.toFixed(0)}</span>
+            </button>
+          ))}
+        </div>
+        <input
+          className={`input ${error ? 'border-red-400' : ''}`}
+          type="number"
+          min="0.01"
+          max={balance}
+          step="0.01"
+          placeholder={String(debt.minPayment || '')}
+          value={amount}
+          onChange={(e) => { setAmount(e.target.value); setError(''); }}
+          autoFocus
+        />
+        {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
+      </div>
+
+      <div>
+        <label className="label">Payment Date</label>
+        <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+
+      <div>
+        <label className="label">Notes (optional)</label>
+        <input className="input" placeholder="e.g. March payment, extra principal…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button type="submit" className="btn-primary flex-1">Record Payment</button>
+        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+      </div>
+    </form>
   );
 }
 

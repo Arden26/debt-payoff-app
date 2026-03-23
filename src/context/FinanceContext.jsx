@@ -64,12 +64,37 @@ function reducer(state, action) {
     }
 
     // Debts
-    case 'ADD_DEBT':
-      return { ...state, debts: [...state.debts, { ...action.payload, id: generateId() }] };
+    case 'ADD_DEBT': {
+      const bal = parseFloat(action.payload.balance) || 0;
+      return { ...state, debts: [...state.debts, { ...action.payload, id: generateId(), originalBalance: bal }] };
+    }
     case 'UPDATE_DEBT':
       return { ...state, debts: state.debts.map((d) => d.id === action.payload.id ? action.payload : d) };
     case 'DELETE_DEBT':
       return { ...state, debts: state.debts.filter((d) => d.id !== action.id) };
+    case 'MAKE_DEBT_PAYMENT': {
+      const { debtId, debtName, amount, date, notes } = action;
+      return {
+        ...state,
+        debts: state.debts.map((d) =>
+          d.id === debtId
+            ? { ...d, balance: Math.max(0, parseFloat(d.balance) - amount) }
+            : d
+        ),
+        transactions: [
+          {
+            id: generateId(),
+            type: 'expense',
+            name: `Debt Payment: ${debtName}`,
+            amount,
+            date: date || todayISO(),
+            category: 'Debt Payment',
+            notes: notes || '',
+          },
+          ...state.transactions,
+        ],
+      };
+    }
 
     // Budget Categories
     case 'UPDATE_BUDGET_CATEGORY':
