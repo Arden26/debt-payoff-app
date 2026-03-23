@@ -109,7 +109,7 @@ export function DebtView() {
                     <ExportButtons results={results} debts={debts} income={income} strategy={strategy} />
                   </div>
                 </div>
-                <div className="p-4">
+                <div className="p-4 overflow-x-auto">
                   {activeTab === 'chart' && <PayoffChart results={results} debts={debts} />}
                   {activeTab === 'timeline' && <TimelineTable results={results} debts={debts} />}
                   {activeTab === 'payoff-order' && <PayoffOrderPanel results={results} debts={debts} />}

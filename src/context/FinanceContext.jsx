@@ -177,6 +177,29 @@ export function FinanceProvider({ children }) {
     URL.revokeObjectURL(url);
   }, [state]);
 
+  /** Export transactions as a CSV file */
+  const exportTransactionsCSV = useCallback(() => {
+    const sorted = [...state.transactions].sort((a, b) => (a.date < b.date ? 1 : -1));
+    const header = ['Date', 'Name', 'Type', 'Amount', 'Category', 'Notes'];
+    const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = sorted.map((t) => [
+      escape(t.date ?? ''),
+      escape(t.name ?? ''),
+      escape(t.type ?? ''),
+      escape(t.amount ?? ''),
+      escape(t.category ?? ''),
+      escape(t.notes ?? ''),
+    ].join(','));
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financeos-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state.transactions]);
+
   /** Import data from a JSON backup file (prompts file picker) */
   const importData = useCallback(() => {
     const input = document.createElement('input');
@@ -208,7 +231,7 @@ export function FinanceProvider({ children }) {
   }, [clear]);
 
   return (
-    <FinanceContext.Provider value={{ state, dispatch, exportData, importData, resetAll }}>
+    <FinanceContext.Provider value={{ state, dispatch, exportData, exportTransactionsCSV, importData, resetAll }}>
       {children}
     </FinanceContext.Provider>
   );

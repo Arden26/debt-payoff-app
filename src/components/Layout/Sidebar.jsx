@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 ];
 
 function DataMenu({ onClose }) {
-  const { exportData, importData, resetAll } = useFinance();
+  const { exportData, exportTransactionsCSV, importData, resetAll } = useFinance();
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -20,6 +20,12 @@ function DataMenu({ onClose }) {
       <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
         Data Backup
       </div>
+      <button
+        onClick={() => { exportTransactionsCSV(); onClose(); }}
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+      >
+        <span>📊</span> Export transactions (.csv)
+      </button>
       <button
         onClick={() => { exportData(); onClose(); }}
         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"

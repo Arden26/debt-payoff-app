@@ -18,6 +18,15 @@
     scroll-behavior: smooth;
   }
 
+  /* Prevent horizontal overflow on mobile */
+  body {
+    overflow-x: hidden;
+  }
+  /* Touch-friendly tap highlight */
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
