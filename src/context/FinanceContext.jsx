@@ -86,7 +86,14 @@ function reducer(state, action) {
 
     // Hydrate from storage
     case 'HYDRATE':
-      return { ...INITIAL_STATE, ...action.payload };
+      return {
+        ...INITIAL_STATE,
+        ...action.payload,
+        settings: { ...INITIAL_STATE.settings, ...(action.payload.settings || {}) },
+        budgetCategories: action.payload.budgetCategories?.length
+          ? action.payload.budgetCategories
+          : INITIAL_STATE.budgetCategories,
+      };
 
     case 'RESET':
       return INITIAL_STATE;
@@ -102,28 +109,71 @@ const FinanceContext = createContext(null);
 
 export function FinanceProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const { save, load } = useStorage();
+  const { save, load, clear } = useStorage();
   const loaded = useRef(false);
   const saveTimer = useRef(null);
 
-  // Load from storage once on mount
+  // Load from localStorage once on mount (synchronous)
   useEffect(() => {
-    load().then((saved) => {
-      if (saved) dispatch({ type: 'HYDRATE', payload: saved });
-      loaded.current = true;
-    });
+    const saved = load();
+    if (saved) dispatch({ type: 'HYDRATE', payload: saved });
+    loaded.current = true;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced auto-save whenever state changes
   useEffect(() => {
     if (!loaded.current) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => save(state), 600);
+    saveTimer.current = setTimeout(() => save(state), 400);
     return () => clearTimeout(saveTimer.current);
   }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Download all data as a JSON backup file */
+  const exportData = useCallback(() => {
+    const blob = new Blob(
+      [JSON.stringify({ ...state, exportedAt: new Date().toISOString(), version: 1 }, null, 2)],
+      { type: 'application/json' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financeos-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state]);
+
+  /** Import data from a JSON backup file (prompts file picker) */
+  const importData = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          // Strip metadata fields before hydrating
+          const { exportedAt, version, ...data } = parsed; // eslint-disable-line no-unused-vars
+          dispatch({ type: 'HYDRATE', payload: data });
+        } catch {
+          alert('Invalid backup file. Please select a valid FinanceOS .json backup.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
+
+  /** Wipe all local data */
+  const resetAll = useCallback(() => {
+    clear();
+    dispatch({ type: 'RESET' });
+  }, [clear]);
+
   return (
-    <FinanceContext.Provider value={{ state, dispatch }}>
+    <FinanceContext.Provider value={{ state, dispatch, exportData, importData, resetAll }}>
       {children}
     </FinanceContext.Provider>
   );

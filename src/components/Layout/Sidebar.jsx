@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useFinance } from '../../context/FinanceContext.jsx';
+
 const NAV_ITEMS = [
   { id: 'dashboard',      label: 'Dashboard',     icon: '⚡' },
   { id: 'transactions',   label: 'Transactions',  icon: '↕️' },
@@ -8,7 +11,62 @@ const NAV_ITEMS = [
   { id: 'debt',           label: 'Debt Payoff',   icon: '💳' },
 ];
 
+function DataMenu({ onClose }) {
+  const { exportData, importData, resetAll } = useFinance();
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <div className="absolute bottom-12 left-3 right-3 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+      <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
+        Data Backup
+      </div>
+      <button
+        onClick={() => { exportData(); onClose(); }}
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+      >
+        <span>⬇️</span> Export backup (.json)
+      </button>
+      <button
+        onClick={() => { importData(); onClose(); }}
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+      >
+        <span>⬆️</span> Import backup (.json)
+      </button>
+      <div className="border-t border-slate-100">
+        {confirming ? (
+          <div className="px-3 py-2.5">
+            <p className="text-xs text-rose-600 font-medium mb-2">Erase all data? This cannot be undone.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { resetAll(); onClose(); }}
+                className="flex-1 py-1.5 text-xs bg-rose-600 text-white rounded-lg font-medium"
+              >
+                Yes, erase
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                className="flex-1 py-1.5 text-xs bg-slate-100 text-slate-600 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-rose-500 hover:bg-rose-50 transition-colors"
+          >
+            <span>🗑️</span> Erase all data
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar({ current, onChange }) {
+  const [showMenu, setShowMenu] = useState(false);
+
   return (
     <>
       {/* Desktop sidebar */}
@@ -40,8 +98,19 @@ export function Sidebar({ current, onChange }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-100 text-xs text-slate-400 text-center">
-          All data stored locally
+        {/* Footer with backup */}
+        <div className="p-3 border-t border-slate-100 relative">
+          {showMenu && <DataMenu onClose={() => setShowMenu(false)} />}
+          <button
+            onClick={() => setShowMenu((v) => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>💾</span> Backup / Restore
+            </span>
+            <span className="text-slate-300">{showMenu ? '▼' : '▲'}</span>
+          </button>
+          <p className="text-center text-[10px] text-slate-300 mt-1">Stored locally on this device</p>
         </div>
       </aside>
 
