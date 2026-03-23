@@ -120,6 +120,16 @@ function reducer(state, action) {
           : INITIAL_STATE.budgetCategories,
       };
 
+    case 'IMPORT_TRANSACTIONS': {
+      const imported = action.payload.map((t) => ({
+        ...t,
+        id: generateId(),
+        category: t.category || 'Other',
+        notes: t.notes || '',
+      }));
+      return { ...state, transactions: [...imported, ...state.transactions] };
+    }
+
     case 'RESET':
       return INITIAL_STATE;
 

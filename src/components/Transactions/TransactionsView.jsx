@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext.jsx';
 import { Modal } from '../Shared/Modal.jsx';
 import { TransactionForm } from '../Shared/TransactionForm.jsx';
+import { CSVImport } from './CSVImport.jsx';
 import { EmptyState } from '../Shared/EmptyState.jsx';
 import { fmt, monthISO } from '../../utils/formatters.js';
 import { getCategoryConfig, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../utils/categoryConfig.js';
@@ -11,6 +12,7 @@ const ALL_CATS = ['All', ...EXPENSE_CATEGORIES.map((c) => c.name), ...INCOME_CAT
 export function TransactionsView() {
   const { state, dispatch } = useFinance();
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState({ month: monthISO(new Date()), type: 'all', category: 'All', search: '' });
 
@@ -63,7 +65,10 @@ export function TransactionsView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-900">Transactions</h1>
-        <button onClick={() => setShowForm(true)} className="btn-primary text-xs">+ Add</button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowImport(true)} className="btn-secondary text-xs">⬆ Import CSV</button>
+          <button onClick={() => setShowForm(true)} className="btn-primary text-xs">+ Add</button>
+        </div>
       </div>
 
       {/* Month nav + summary */}
@@ -155,6 +160,11 @@ export function TransactionsView() {
       {(showForm || editing) && (
         <Modal title={editing ? 'Edit Transaction' : 'Add Transaction'} onClose={() => { setShowForm(false); setEditing(null); }}>
           <TransactionForm initialValues={editing} onSave={handleSave} onCancel={() => { setShowForm(false); setEditing(null); }} />
+        </Modal>
+      )}
+      {showImport && (
+        <Modal title="Import CSV" size="lg" onClose={() => setShowImport(false)}>
+          <CSVImport onClose={() => setShowImport(false)} />
         </Modal>
       )}
     </div>
