@@ -174,6 +174,7 @@ function DataMenu({ onClose }) {
 
 export function Sidebar({ current, onChange }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   return (
     <>
@@ -228,7 +229,7 @@ export function Sidebar({ current, onChange }) {
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
-              onClick={() => onChange(item.id)}
+              onClick={() => { onChange(item.id); setShowMobileMenu(false); }}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
                 current === item.id ? 'text-blue-600' : 'text-slate-400'
               }`}
@@ -237,8 +238,34 @@ export function Sidebar({ current, onChange }) {
               <span className="truncate max-w-[48px] text-[10px]">{item.label}</span>
             </button>
           ))}
+          <button
+            onClick={() => setShowMobileMenu((v) => !v)}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
+              showMobileMenu ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            <span className="text-lg leading-none">⚙️</span>
+            <span className="text-[10px]">More</span>
+          </button>
         </div>
       </nav>
+
+      {/* Mobile data menu overlay */}
+      {showMobileMenu && (
+        <>
+          <div
+            className="lg:hidden fixed inset-0 z-40 bg-black/20"
+            onClick={() => setShowMobileMenu(false)}
+          />
+          <div className="lg:hidden fixed bottom-14 left-3 right-3 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <span className="text-sm font-semibold text-slate-700">Data & Backup</span>
+              <DbIndicator />
+            </div>
+            <DataMenu onClose={() => setShowMobileMenu(false)} />
+          </div>
+        </>
+      )}
     </>
   );
 }
