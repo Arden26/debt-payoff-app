@@ -29,13 +29,45 @@ function DbIndicator() {
 }
 
 function DataMenu({ onClose }) {
-  const { exportData, exportTransactionsCSV, importData, resetAll } = useFinance();
+  const { exportData, exportTransactionsCSV, importData, resetAll, dispatch, sessionId } = useFinance();
   const [confirming, setConfirming] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncId, setSyncId] = useState('');
+  const [syncStatus, setSyncStatus] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyId() {
+    if (!sessionId) return;
+    navigator.clipboard?.writeText(sessionId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  async function handleSync() {
+    const sid = syncId.trim();
+    if (!sid) return;
+    setSyncStatus('loading');
+    try {
+      const res = await fetch(`/api/load?sessionId=${encodeURIComponent(sid)}`);
+      const { data } = await res.json();
+      if (data && (data.transactions?.length || data.debts?.length || data.recurringItems?.length)) {
+        localStorage.setItem('financeos_session_id', sid);
+        dispatch({ type: 'HYDRATE', payload: data });
+        setSyncStatus('ok');
+        setTimeout(() => { onClose(); }, 800);
+      } else {
+        setSyncStatus('notfound');
+      }
+    } catch {
+      setSyncStatus('error');
+    }
+  }
 
   return (
     <div className="absolute bottom-12 left-3 right-3 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
       <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
-        Data Backup
+        Data
       </div>
       <button
         onClick={() => { exportTransactionsCSV(); onClose(); }}
@@ -55,6 +87,59 @@ function DataMenu({ onClose }) {
       >
         <span>⬆️</span> Import backup (.json)
       </button>
+
+      {/* Sync between devices */}
+      <div className="border-t border-slate-100">
+        {syncing ? (
+          <div className="px-3 py-2.5">
+            {/* Show current ID for copying */}
+            <p className="text-xs text-slate-600 font-medium mb-1">Your sync ID (this device)</p>
+            <div className="flex gap-1.5 mb-3">
+              <code className="flex-1 text-[10px] bg-slate-50 border border-slate-200 rounded px-2 py-1 font-mono truncate text-slate-500">
+                {sessionId ?? '—'}
+              </code>
+              <button
+                onClick={handleCopyId}
+                className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 rounded font-medium whitespace-nowrap"
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+            {/* Accept ID from other device */}
+            <p className="text-xs text-slate-600 font-medium mb-1">Load from another device</p>
+            <p className="text-[10px] text-slate-400 mb-1.5">Paste the sync ID from your other device to pull its data here.</p>
+            <input
+              className="w-full text-xs px-2 py-1.5 border border-slate-200 rounded-lg mb-2 font-mono"
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              value={syncId}
+              onChange={e => { setSyncId(e.target.value); setSyncStatus(''); }}
+            />
+            {syncStatus === 'notfound' && <p className="text-[10px] text-amber-600 mb-1">No data found for that ID.</p>}
+            {syncStatus === 'error' && <p className="text-[10px] text-red-500 mb-1">Connection error. Try again.</p>}
+            {syncStatus === 'ok' && <p className="text-[10px] text-emerald-600 mb-1">✓ Synced!</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={handleSync}
+                disabled={syncStatus === 'loading' || !syncId.trim()}
+                className="flex-1 py-1.5 text-xs bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {syncStatus === 'loading' ? 'Loading…' : 'Load data'}
+              </button>
+              <button onClick={() => setSyncing(false)} className="flex-1 py-1.5 text-xs bg-slate-100 text-slate-600 rounded-lg font-medium">
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setSyncing(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <span>📱</span> Sync between devices
+          </button>
+        )}
+      </div>
+
       <div className="border-t border-slate-100">
         {confirming ? (
           <div className="px-3 py-2.5">

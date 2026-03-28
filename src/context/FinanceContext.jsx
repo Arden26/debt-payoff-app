@@ -144,7 +144,7 @@ const FinanceContext = createContext(null);
 
 export function FinanceProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const { save, load, syncFromDB, clear, dbStatus } = useStorage();
+  const { save, load, syncFromDB, clear, dbStatus, sessionId } = useStorage();
   const loaded = useRef(false);
   const saveTimer = useRef(null);
 
@@ -236,7 +236,7 @@ export function FinanceProvider({ children }) {
   }, [clear]);
 
   return (
-    <FinanceContext.Provider value={{ state, dispatch, exportData, exportTransactionsCSV, importData, resetAll, dbStatus }}>
+    <FinanceContext.Provider value={{ state, dispatch, exportData, exportTransactionsCSV, importData, resetAll, dbStatus, sessionId }}>
       {children}
     </FinanceContext.Provider>
   );

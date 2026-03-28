@@ -94,5 +94,5 @@ export function useStorage() {
     try { localStorage.removeItem(LS_DATA_KEY); } catch {}
   }, []);
 
-  return { save, load, syncFromDB, clear, dbStatus };
+  return { save, load, syncFromDB, clear, dbStatus, sessionId };
 }
