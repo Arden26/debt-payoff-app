@@ -1,12 +1,11 @@
 /**
  * POST /api/save
- * Saves user data to Cloudflare KV keyed by anonymous session ID.
+ * Saves user data to Cloudflare D1 keyed by anonymous session ID.
  * Body: { sessionId: string, data: object | null }
  */
 export async function onRequestPost({ request, env }) {
-  // Check KV is bound (only available after wrangler.toml is configured)
-  if (!env.DEBT_PAYOFF_KV) {
-    return new Response(JSON.stringify({ ok: false, error: 'KV not configured' }), {
+  if (!env.FINANCE_DB) {
+    return new Response(JSON.stringify({ ok: false, error: 'DB not configured' }), {
       status: 503,
       headers: corsHeaders('application/json'),
     });
@@ -31,15 +30,15 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
-  const key = `session:${sessionId}`;
-
   if (data === null) {
-    // Clear data
-    await env.DEBT_PAYOFF_KV.delete(key);
+    await env.FINANCE_DB.prepare('DELETE FROM sessions WHERE session_id = ?')
+      .bind(sessionId)
+      .run();
   } else {
-    await env.DEBT_PAYOFF_KV.put(key, JSON.stringify(data), {
-      expirationTtl: 60 * 60 * 24 * 365, // 1 year TTL
-    });
+    await env.FINANCE_DB
+      .prepare('INSERT OR REPLACE INTO sessions (session_id, data, updated_at) VALUES (?, ?, unixepoch())')
+      .bind(sessionId, JSON.stringify(data))
+      .run();
   }
 
   return new Response(JSON.stringify({ ok: true }), {
@@ -47,7 +46,6 @@ export async function onRequestPost({ request, env }) {
   });
 }
 
-// Handle CORS preflight
 export async function onRequestOptions() {
   return new Response(null, { headers: corsHeaders() });
 }

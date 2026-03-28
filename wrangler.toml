@@ -2,10 +2,10 @@ name = "debt-payoff-app"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-[[kv_namespaces]]
-binding = "DEBT_PAYOFF_KV"
-id = "d878707d15544c14baaad4064a57797d"
-preview_id = "072964664c294173ac69f376e0b0c154"
+[[d1_databases]]
+binding = "FINANCE_DB"
+database_name = "financeos-db"
+database_id = "91df5ac9-1a79-4207-8551-4f53e9d6bec7"
 
 [vars]
 ENVIRONMENT = "production"

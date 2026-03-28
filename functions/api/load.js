@@ -1,11 +1,11 @@
 /**
  * GET /api/load?sessionId=<id>
- * Loads user data from Cloudflare KV.
+ * Loads user data from Cloudflare D1.
  * Returns: { data: object | null }
  */
 export async function onRequestGet({ request, env }) {
-  if (!env.DEBT_PAYOFF_KV) {
-    return new Response(JSON.stringify({ data: null, error: 'KV not configured' }), {
+  if (!env.FINANCE_DB) {
+    return new Response(JSON.stringify({ data: null, error: 'DB not configured' }), {
       status: 503,
       headers: corsHeaders('application/json'),
     });
@@ -21,10 +21,14 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
-  const key = `session:${sessionId}`;
-  const stored = await env.DEBT_PAYOFF_KV.get(key, 'json');
+  const row = await env.FINANCE_DB
+    .prepare('SELECT data FROM sessions WHERE session_id = ?')
+    .bind(sessionId)
+    .first();
 
-  return new Response(JSON.stringify({ data: stored ?? null }), {
+  const data = row ? JSON.parse(row.data) : null;
+
+  return new Response(JSON.stringify({ data }), {
     headers: corsHeaders('application/json'),
   });
 }
