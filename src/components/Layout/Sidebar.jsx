@@ -11,6 +11,23 @@ const NAV_ITEMS = [
   { id: 'debt',           label: 'Debt Payoff',   icon: '💳' },
 ];
 
+const DB_STATUS = {
+  connected:  { dot: 'bg-emerald-400', text: 'Cloud synced',   pulse: false },
+  connecting: { dot: 'bg-amber-400 animate-pulse', text: 'Connecting…', pulse: true },
+  offline:    { dot: 'bg-slate-300',   text: 'Saved locally',  pulse: false },
+};
+
+function DbIndicator() {
+  const { dbStatus } = useFinance();
+  const cfg = DB_STATUS[dbStatus] ?? DB_STATUS.connecting;
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1.5">
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+      <span className="text-[10px] text-slate-400">{cfg.text}</span>
+    </div>
+  );
+}
+
 function DataMenu({ onClose }) {
   const { exportData, exportTransactionsCSV, importData, resetAll } = useFinance();
   const [confirming, setConfirming] = useState(false);
@@ -116,7 +133,7 @@ export function Sidebar({ current, onChange }) {
             </span>
             <span className="text-slate-300">{showMenu ? '▼' : '▲'}</span>
           </button>
-          <p className="text-center text-[10px] text-slate-300 mt-1">Stored locally on this device</p>
+          <DbIndicator />
         </div>
       </aside>
 

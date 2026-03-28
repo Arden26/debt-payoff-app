@@ -144,15 +144,20 @@ const FinanceContext = createContext(null);
 
 export function FinanceProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const { save, load, clear } = useStorage();
+  const { save, load, syncFromDB, clear, dbStatus } = useStorage();
   const loaded = useRef(false);
   const saveTimer = useRef(null);
 
-  // Load from localStorage once on mount (synchronous)
+  // 1. Load localStorage immediately (synchronous — no flash of empty state)
+  // 2. Then sync from D1 in background and re-hydrate if data found
   useEffect(() => {
     const saved = load();
     if (saved) dispatch({ type: 'HYDRATE', payload: saved });
     loaded.current = true;
+
+    syncFromDB((dbData) => {
+      dispatch({ type: 'HYDRATE', payload: dbData });
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced auto-save whenever state changes
@@ -231,7 +236,7 @@ export function FinanceProvider({ children }) {
   }, [clear]);
 
   return (
-    <FinanceContext.Provider value={{ state, dispatch, exportData, exportTransactionsCSV, importData, resetAll }}>
+    <FinanceContext.Provider value={{ state, dispatch, exportData, exportTransactionsCSV, importData, resetAll, dbStatus }}>
       {children}
     </FinanceContext.Provider>
   );
