@@ -76,7 +76,7 @@ export function TransactionsView() {
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => changeMonth(-1)} className="btn-ghost p-1.5">←</button>
           <span className="font-semibold text-slate-800 flex-1 text-center">
-            {new Date(filter.month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            {new Date(filter.month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
           <button onClick={() => changeMonth(1)} className="btn-ghost p-1.5">→</button>
         </div>
