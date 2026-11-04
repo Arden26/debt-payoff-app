@@ -3,6 +3,20 @@ import { useFinance } from '../../context/FinanceContext.jsx';
 
 const SUPPORTED = typeof window !== 'undefined' && 'Notification' in window;
 
+// iOS Safari never exposes window.Notification in an ordinary browser tab —
+// it only becomes available once the site is added to the Home Screen
+// (iOS 16.4+) and opened from there as a standalone "app". Detect that case
+// so we can tell the person what to actually do instead of just "Unsupported".
+const IS_IOS = typeof navigator !== 'undefined' && (
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  // iPadOS 13+ reports as "Mac" but has touch support, unlike real macOS
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+);
+const IS_STANDALONE = typeof window !== 'undefined' && (
+  window.navigator.standalone === true ||
+  window.matchMedia?.('(display-mode: standalone)').matches
+);
+
 export function ReminderSettings({ inline = false }) {
   const { state, dispatch } = useFinance();
   const { notificationsEnabled, reminderDaysBefore } = state.settings;
@@ -62,7 +76,21 @@ export function ReminderSettings({ inline = false }) {
         )}
       </div>
 
-      {!SUPPORTED && (
+      {!SUPPORTED && IS_IOS && !IS_STANDALONE && (
+        <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-2.5 py-1.5 mt-2">
+          iPhone/iPad only allow reminders for apps added to the Home Screen.
+          Tap the Share icon in Safari, then <strong>Add to Home Screen</strong>,
+          and open FinanceOS from there to turn this on.
+        </p>
+      )}
+
+      {!SUPPORTED && IS_IOS && IS_STANDALONE && (
+        <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-2.5 py-1.5 mt-2">
+          Reminders need iOS 16.4 or later. Update iOS in Settings → General → Software Update to turn this on.
+        </p>
+      )}
+
+      {!SUPPORTED && !IS_IOS && (
         <p className="text-xs text-slate-400 mt-2">
           This browser doesn't support notifications.
         </p>
