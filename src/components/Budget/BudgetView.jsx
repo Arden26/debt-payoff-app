@@ -38,7 +38,7 @@ export function BudgetView() {
         <div className="flex items-center gap-2">
           <button onClick={() => changeMonth(-1)} className="btn-ghost p-1.5">←</button>
           <span className="text-sm font-semibold text-slate-700">
-            {new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            {new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </span>
           <button onClick={() => changeMonth(1)} className="btn-ghost p-1.5">→</button>
         </div>
