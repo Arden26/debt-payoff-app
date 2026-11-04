@@ -80,7 +80,7 @@ export function DebtView() {
           {/* Budget */}
           <div className="card p-4">
             <h2 className="font-semibold text-slate-800 mb-3">Budget</h2>
-            <IncomeSettings income={income} onChange={setIncome} />
+            <IncomeSettings income={income} onChange={setIncome} debts={debts} strategy={strategy} />
           </div>
 
           {/* Strategy */}

@@ -11,6 +11,13 @@ const NAV_ITEMS = [
   { id: 'debt',           label: 'Debt Payoff',   icon: '💳' },
 ];
 
+// Mobile bottom nav only has room for ~4-5 comfortable tap targets before
+// labels get cramped — show the most-used views directly and tuck the
+// rest into the "More" sheet alongside Data/Backup.
+const MOBILE_PRIMARY_IDS = ['dashboard', 'debt', 'budget', 'transactions'];
+const MOBILE_PRIMARY_ITEMS = MOBILE_PRIMARY_IDS.map((id) => NAV_ITEMS.find((n) => n.id === id));
+const MOBILE_MORE_ITEMS = NAV_ITEMS.filter((n) => !MOBILE_PRIMARY_IDS.includes(n.id));
+
 const DB_STATUS = {
   connected:  { dot: 'bg-emerald-400', text: 'Cloud synced',   pulse: false },
   connecting: { dot: 'bg-amber-400 animate-pulse', text: 'Connecting…', pulse: true },
@@ -28,7 +35,7 @@ function DbIndicator() {
   );
 }
 
-function DataMenu({ onClose }) {
+function DataMenu({ onClose, inline = false }) {
   const { exportData, exportTransactionsCSV, importData, resetAll, dispatch, sessionId } = useFinance();
   const [confirming, setConfirming] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -65,7 +72,10 @@ function DataMenu({ onClose }) {
   }
 
   return (
-    <div className="absolute bottom-12 left-3 right-3 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+    <div className={inline
+      ? 'bg-white overflow-hidden'
+      : 'absolute bottom-12 left-3 right-3 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden'
+    }>
       <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
         Data
       </div>
@@ -223,25 +233,26 @@ export function Sidebar({ current, onChange }) {
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — primary views only; the rest live in "More" so
+          tap targets stay comfortably sized instead of 8-across cramped. */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 safe-area-inset-bottom">
         <div className="flex">
-          {NAV_ITEMS.map((item) => (
+          {MOBILE_PRIMARY_ITEMS.map((item) => (
             <button
               key={item.id}
               onClick={() => { onChange(item.id); setShowMobileMenu(false); }}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 min-h-[44px] text-xs font-medium transition-colors ${
                 current === item.id ? 'text-blue-600' : 'text-slate-400'
               }`}
             >
               <span className="text-lg leading-none">{item.icon}</span>
-              <span className="truncate max-w-[48px] text-[10px]">{item.label}</span>
+              <span className="truncate max-w-[64px] text-[10px]">{item.label}</span>
             </button>
           ))}
           <button
             onClick={() => setShowMobileMenu((v) => !v)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-xs font-medium transition-colors ${
-              showMobileMenu ? 'text-blue-600' : 'text-slate-400'
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 min-h-[44px] text-xs font-medium transition-colors ${
+              showMobileMenu || MOBILE_MORE_ITEMS.some((i) => i.id === current) ? 'text-blue-600' : 'text-slate-400'
             }`}
           >
             <span className="text-lg leading-none">⚙️</span>
@@ -250,19 +261,34 @@ export function Sidebar({ current, onChange }) {
         </div>
       </nav>
 
-      {/* Mobile data menu overlay */}
+      {/* Mobile "More" overlay — remaining nav items + Data/Backup */}
       {showMobileMenu && (
         <>
           <div
             className="lg:hidden fixed inset-0 z-40 bg-black/20"
             onClick={() => setShowMobileMenu(false)}
           />
-          <div className="lg:hidden fixed bottom-14 left-3 right-3 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div className="lg:hidden fixed bottom-14 left-3 right-3 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-[70vh] overflow-y-auto">
+            <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
+              More views
+            </div>
+            {MOBILE_MORE_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => { onChange(item.id); setShowMobileMenu(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  current === item.id ? 'text-blue-600 bg-blue-50' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span className="text-base leading-none">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-b border-slate-100">
               <span className="text-sm font-semibold text-slate-700">Data & Backup</span>
               <DbIndicator />
             </div>
-            <DataMenu onClose={() => setShowMobileMenu(false)} />
+            <DataMenu onClose={() => setShowMobileMenu(false)} inline />
           </div>
         </>
       )}

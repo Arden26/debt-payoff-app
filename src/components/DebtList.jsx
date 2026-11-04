@@ -1,12 +1,43 @@
+import { useEffect, useRef, useState } from 'react';
 import { formatCurrency, DEBT_COLORS } from '../utils/debtCalc.js';
 
 export function DebtList({ debts, onEdit, onDelete, onPay }) {
+  const [celebrating, setCelebrating] = useState(null);
+  const prevPaidOffIds = useRef(null); // null until the first run has recorded a baseline
+
+  // Fire a brief celebration the moment a debt's balance hits zero — makes
+  // the milestone feel earned instead of just a silent progress-bar flip.
+  // The null-check on mount matters: without it, re-opening the app with a
+  // debt already at $0 from a prior session would "celebrate" on load.
+  useEffect(() => {
+    const currentlyPaidOff = new Set(
+      debts.filter((d) => parseFloat(d.balance || 0) === 0).map((d) => d.id)
+    );
+
+    if (prevPaidOffIds.current === null) {
+      prevPaidOffIds.current = currentlyPaidOff;
+      return;
+    }
+
+    const newlyPaidOff = debts.find(
+      (d) => currentlyPaidOff.has(d.id) && !prevPaidOffIds.current.has(d.id)
+    );
+    prevPaidOffIds.current = currentlyPaidOff;
+
+    if (newlyPaidOff) {
+      setCelebrating(newlyPaidOff.name);
+      const t = setTimeout(() => setCelebrating(null), 3200);
+      return () => clearTimeout(t);
+    }
+  }, [debts]);
+
   if (debts.length === 0) return null;
 
   const totalBalance = debts.reduce((s, d) => s + parseFloat(d.balance || 0), 0);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
+      {celebrating && <PayoffCelebration name={celebrating} onDone={() => setCelebrating(null)} />}
       {debts.map((debt, i) => {
         const balance = parseFloat(debt.balance || 0);
         const original = parseFloat(debt.originalBalance || debt.balance || balance);
@@ -55,12 +86,13 @@ export function DebtList({ debts, onEdit, onDelete, onPay }) {
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Actions — min 44px hit area per touch-target guidelines, even
+                though the icon itself stays small/compact visually. */}
             <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
               {!isFullyPaid && (
                 <button
                   onClick={() => onPay(debt)}
-                  className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                   title="Make a payment"
                 >
                   <PayIcon />
@@ -68,14 +100,14 @@ export function DebtList({ debts, onEdit, onDelete, onPay }) {
               )}
               <button
                 onClick={() => onEdit(debt)}
-                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Edit"
               >
                 <PencilIcon />
               </button>
               <button
                 onClick={() => onDelete(debt.id)}
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Delete"
               >
                 <TrashIcon />
@@ -89,6 +121,45 @@ export function DebtList({ debts, onEdit, onDelete, onPay }) {
       <div className="flex justify-between text-xs font-medium text-slate-500 px-1 pt-1 border-t border-slate-100">
         <span>{debts.length} debt{debts.length !== 1 ? 's' : ''}</span>
         <span>Remaining: {formatCurrency(totalBalance)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PayoffCelebration({ name, onDone }) {
+  // Dependency-free celebration: a toast plus a handful of CSS-animated
+  // confetti pieces, no canvas/library needed for something this small.
+  const pieces = Array.from({ length: 24 }, (_, i) => i);
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+  return (
+    <div className="fixed inset-x-0 top-0 z-[60] pointer-events-none flex justify-center overflow-hidden" style={{ height: '100vh' }}>
+      {pieces.map((i) => {
+        const left = 5 + Math.random() * 90;
+        const delay = Math.random() * 0.4;
+        const duration = 1.8 + Math.random() * 1.2;
+        const color = colors[i % colors.length];
+        return (
+          <span
+            key={i}
+            className="absolute top-0 w-2 h-2 rounded-sm confetti-piece"
+            style={{
+              left: `${left}%`,
+              backgroundColor: color,
+              animationDelay: `${delay}s`,
+              animationDuration: `${duration}s`,
+            }}
+          />
+        );
+      })}
+      <div
+        className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl shadow-xl px-5 py-3 flex items-center gap-2.5 animate-fade-in cursor-pointer"
+        onClick={onDone}
+      >
+        <span className="text-xl">🎉</span>
+        <span className="text-sm font-medium">
+          <strong>{name}</strong> is paid off!
+        </span>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-import { calcBudgetRecommendation, formatCurrency, biweeklyToMonthly } from '../utils/debtCalc.js';
+import { calcBudgetRecommendation, formatCurrency, formatMonths, biweeklyToMonthly, simulatePayoff } from '../utils/debtCalc.js';
 
-export function IncomeSettings({ income, onChange }) {
+export function IncomeSettings({ income, onChange, debts, strategy }) {
   const set = (field) => (e) =>
     onChange((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -11,6 +11,20 @@ export function IncomeSettings({ income, onChange }) {
   const budget = calcBudgetRecommendation(monthlyIncome);
   const extraPayment = parseFloat(income.extraDebtPayment) || 0;
   const totalBudget = monthlyIncome + extraPayment;
+
+  // Live effect of just the extra-payment slider: compare the current
+  // budget (with extra) against the same base budget with extra = 0,
+  // so the number next to the slider reflects what dragging it actually buys.
+  const sliderImpact = (() => {
+    if (!debts || debts.length === 0 || monthlyIncome <= 0 || extraPayment <= 0) return null;
+    const withExtra = simulatePayoff(debts, totalBudget, strategy);
+    const withoutExtra = simulatePayoff(debts, monthlyIncome, strategy);
+    if (!withExtra || !withoutExtra) return null;
+    return {
+      monthsSaved: Math.max(0, withoutExtra.payoffMonths - withExtra.payoffMonths),
+      interestSaved: Math.max(0, withoutExtra.totalInterest - withExtra.totalInterest),
+    };
+  })();
 
   return (
     <div className="space-y-4">
@@ -72,6 +86,13 @@ export function IncomeSettings({ income, onChange }) {
             <span>$0</span>
             <span>{formatCurrency(monthlyIncome * 0.5)}</span>
           </div>
+          {sliderImpact && (sliderImpact.monthsSaved > 0 || sliderImpact.interestSaved > 0) && (
+            <p className="text-xs text-emerald-600 bg-emerald-50 rounded-lg px-2.5 py-1.5 mt-2">
+              That extra {formatCurrency(extraPayment)}/mo pays debt off{' '}
+              <strong>{formatMonths(sliderImpact.monthsSaved)} sooner</strong> and saves{' '}
+              <strong>{formatCurrency(sliderImpact.interestSaved)}</strong> in interest.
+            </p>
+          )}
         </div>
       )}
 
