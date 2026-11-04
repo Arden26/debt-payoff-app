@@ -6,7 +6,6 @@ import { TransactionsView } from './components/Transactions/TransactionsView.jsx
 import { BudgetView } from './components/Budget/BudgetView.jsx';
 import { SavingsView } from './components/Savings/SavingsView.jsx';
 import { SubscriptionsView } from './components/Subscriptions/SubscriptionsView.jsx';
-import { CalendarView } from './components/Calendar/CalendarView.jsx';
 import { DebtView } from './components/Debt/DebtView.jsx';
 
 function AppShell() {
@@ -18,7 +17,6 @@ function AppShell() {
     budget:        <BudgetView />,
     savings:       <SavingsView />,
     subscriptions: <SubscriptionsView />,
-    calendar:      <CalendarView />,
     debt:          <DebtView />,
   };
 

@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { id: 'budget',         label: 'Budget',        icon: '📊' },
   { id: 'savings',        label: 'Savings',       icon: '🏦' },
   { id: 'subscriptions',  label: 'Recurring',     icon: '🔄' },
-  { id: 'calendar',       label: 'Calendar',      icon: '📅' },
   { id: 'debt',           label: 'Debt Payoff',   icon: '💳' },
 ];
 

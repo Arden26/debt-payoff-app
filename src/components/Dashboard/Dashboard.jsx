@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { Chart, DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
 import { useFinance, useSelectors } from '../../context/FinanceContext.jsx';
-import { fmt, monthISO, daysUntil, getRecurringOccurrences } from '../../utils/formatters.js';
+import { fmt, monthISO, daysUntil } from '../../utils/formatters.js';
 import { getCategoryConfig } from '../../utils/categoryConfig.js';
 
 Chart.register(DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -32,13 +32,24 @@ export function Dashboard({ onNavigate }) {
   // Recent transactions
   const recent = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
-  // Spending by category this month
+  // Spending by category this month — also carries each category's budget
+  // limit (if one is set in the Budget tab) so this card can flag overages
+  // instead of just repeating the same totals shown there with nothing added.
   const spendingByCategory = useMemo(() => {
     const txs = getMonthTransactions(thisMonth).filter((t) => t.type === 'expense');
     const map = {};
     txs.forEach((t) => { map[t.category] = (map[t.category] || 0) + t.amount; });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [getMonthTransactions, thisMonth]);
+    const limitByName = Object.fromEntries(state.budgetCategories.map((c) => [c.name, c.limit || 0]));
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([category, amount]) => {
+        const limit = limitByName[category] || 0;
+        return { category, amount, limit, isOver: limit > 0 && amount > limit };
+      });
+  }, [getMonthTransactions, thisMonth, state.budgetCategories]);
+
+  const overBudgetCount = spendingByCategory.filter((c) => c.isOver).length;
 
   // Last 6 months cash flow
   const cashFlow = useMemo(() => {
@@ -82,7 +93,17 @@ export function Dashboard({ onNavigate }) {
 
         {/* Spending by category */}
         <div className="card p-4">
-          <h2 className="font-semibold text-slate-800 mb-3 text-sm">Spending This Month</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-slate-800 text-sm">
+              Spending This Month
+              {overBudgetCount > 0 && (
+                <span className="ml-2 badge badge-red text-xs align-middle">
+                  {overBudgetCount} over budget
+                </span>
+              )}
+            </h2>
+            <button onClick={() => onNavigate('budget')} className="text-xs text-blue-600 hover:underline flex-shrink-0">View Budget</button>
+          </div>
           {spendingByCategory.length > 0
             ? <SpendingBreakdown data={spendingByCategory} total={monthExpenses} />
             : <EmptyChart msg="No expenses logged this month" onNavigate={onNavigate} />}
@@ -235,17 +256,22 @@ function CashFlowChart({ data }) {
 function SpendingBreakdown({ data, total }) {
   return (
     <div className="space-y-2">
-      {data.map(([category, amount]) => {
+      {data.map(({ category, amount, limit, isOver }) => {
         const cat = getCategoryConfig(category, 'expense');
         const pct = total > 0 ? (amount / total) * 100 : 0;
         return (
           <div key={category}>
             <div className="flex items-center justify-between text-xs mb-0.5">
-              <span className="flex items-center gap-1 text-slate-600 font-medium">{cat.icon} {category}</span>
-              <span className="text-slate-500">{fmt.currency(amount)} · {fmt.percent(pct)}</span>
+              <span className="flex items-center gap-1 text-slate-600 font-medium">
+                {cat.icon} {category}
+                {isOver && <span className="badge badge-red text-[10px] py-0">Over</span>}
+              </span>
+              <span className={isOver ? 'text-red-500 font-medium' : 'text-slate-500'}>
+                {fmt.currency(amount)}{limit > 0 ? ` / ${fmt.currency(limit)}` : ` · ${fmt.percent(pct)}`}
+              </span>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: cat.color }} />
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isOver ? '#ef4444' : cat.color }} />
             </div>
           </div>
         );
