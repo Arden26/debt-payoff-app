@@ -1,5 +1,5 @@
 import { monthlyEquivalent, monthISO } from './formatters.js';
-import { biweeklyToMonthly } from './debtCalc.js';
+import { biweeklyToMonthly, simulatePayoff, STRATEGIES } from './debtCalc.js';
 
 // Categories that count as "needs" (essentials)
 const NEEDS_CATS = new Set(['Housing', 'Food', 'Transport', 'Healthcare', 'Utilities']);
@@ -219,11 +219,17 @@ export function generatePersonalizedPlan(state) {
     const extraPct = Math.min(0.7, 0.4 + (topDebt.apr - 8) / 50);
     const extraPayment = Math.max(10, Math.round((pool * extraPct) / 5) * 5);
     const amount = Math.min(pool, extraPayment);
-    const totalPay = topDebt.minPayment + amount;
-    const r = topDebt.apr / 12 / 100;
-    const monthsToPayoff = r > 0 && totalPay > topDebt.balance * r
-      ? Math.ceil(-Math.log(1 - r * topDebt.balance / totalPay) / Math.log(1 + r))
-      : null;
+
+    // Run the same month-by-month waterfall simulation the rest of the app
+    // uses (debtCalc.js) instead of a standalone single-debt amortization
+    // formula — that formula ignored the other debts' minimums and the
+    // snowball effect as they pay off, and could disagree with the numbers
+    // shown everywhere else for the same strategy/payment.
+    const simBudget = totalMins + amount;
+    const sim = simulatePayoff(activeDebts, simBudget, STRATEGIES.AVALANCHE);
+    const payoffEntry = sim?.debtPayoffOrder.find((d) => d.id === topDebt.id);
+    const monthsToPayoff = payoffEntry ? payoffEntry.month : null;
+
     alloc({
       type: 'debt', id: topDebt.id, name: topDebt.name, amount,
       apr: topDebt.apr,
@@ -231,7 +237,6 @@ export function generatePersonalizedPlan(state) {
       tag: `🔥 ${topDebt.apr}% APR`,
       reason: `This debt costs you ~$${Math.round(topDebt.monthlyInterest)}/mo in interest. Paying it down first is your highest guaranteed return.`,
       monthsToPayoff,
-      interestSaved: monthsToPayoff ? Math.round(topDebt.monthlyInterest * monthsToPayoff * 0.5) : null,
     });
   }
 
