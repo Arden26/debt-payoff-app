@@ -64,6 +64,23 @@ export function getRecurringOccurrences(item, yearMonth) {
   return dates;
 }
 
+/**
+ * Advance a recurring item's nextDate by exactly one period. Monthly/
+ * quarterly/yearly use addMonths (real calendar months) rather than a
+ * fixed day count, so e.g. a bill due the 31st doesn't creep earlier
+ * every time it's checked off across shorter months.
+ */
+export function nextOccurrence(item) {
+  switch (item.frequency) {
+    case 'weekly': return addDays(item.nextDate, 7);
+    case 'biweekly': return addDays(item.nextDate, 14);
+    case 'quarterly': return addMonths(item.nextDate, 3);
+    case 'yearly': return addMonths(item.nextDate, 12);
+    case 'monthly':
+    default: return addMonths(item.nextDate, 1);
+  }
+}
+
 export const FREQ_DAYS = {
   weekly: 7,
   biweekly: 14,

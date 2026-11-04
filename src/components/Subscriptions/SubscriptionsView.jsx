@@ -112,6 +112,13 @@ export function SubscriptionsView() {
                     const urgent = days <= 3 && type !== 'income';
                     return (
                       <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60 group transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          onChange={() => dispatch({ type: 'MARK_RECURRING_PAID', id: item.id })}
+                          title={type === 'income' ? 'Mark as received' : 'Mark as paid'}
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 flex-shrink-0 cursor-pointer"
+                        />
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 text-white" style={{ backgroundColor: item.color }}>
                           {item.name.slice(0, 2).toUpperCase()}
                         </div>

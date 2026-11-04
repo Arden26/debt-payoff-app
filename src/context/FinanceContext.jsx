@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
-import { generateId, todayISO } from '../utils/formatters.js';
+import { generateId, todayISO, nextOccurrence } from '../utils/formatters.js';
 import { DEFAULT_BUDGET_CATEGORIES } from '../utils/categoryConfig.js';
 import { useStorage } from '../hooks/useStorage.js';
 import { useReminders } from '../hooks/useReminders.js';
@@ -43,6 +43,31 @@ function reducer(state, action) {
       return { ...state, recurringItems: state.recurringItems.map((r) => r.id === action.payload.id ? action.payload : r) };
     case 'DELETE_RECURRING':
       return { ...state, recurringItems: state.recurringItems.filter((r) => r.id !== action.id) };
+    // Checking a recurring item as paid logs it as a transaction for that
+    // due date and rolls nextDate forward to the following occurrence —
+    // so it behaves like the payment actually happened, not just a tick.
+    case 'MARK_RECURRING_PAID': {
+      const item = state.recurringItems.find((r) => r.id === action.id);
+      if (!item) return state;
+      return {
+        ...state,
+        recurringItems: state.recurringItems.map((r) =>
+          r.id === action.id ? { ...r, nextDate: nextOccurrence(r) } : r
+        ),
+        transactions: [
+          {
+            id: generateId(),
+            type: item.type === 'income' ? 'income' : 'expense',
+            name: item.name,
+            amount: item.amount,
+            date: item.nextDate,
+            category: item.category,
+            notes: '',
+          },
+          ...state.transactions,
+        ],
+      };
+    }
 
     // Savings Goals
     case 'ADD_SAVINGS_GOAL':
