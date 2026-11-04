@@ -1,7 +1,8 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { generateId, todayISO } from '../utils/formatters.js';
 import { DEFAULT_BUDGET_CATEGORIES } from '../utils/categoryConfig.js';
 import { useStorage } from '../hooks/useStorage.js';
+import { useReminders } from '../hooks/useReminders.js';
 import { STRATEGIES } from '../utils/debtCalc.js';
 
 // ─── Initial State ────────────────────────────────────────────────────────────
@@ -10,7 +11,7 @@ const INITIAL_STATE = {
   transactions: [],       // { id, type, name, amount, date, category, notes }
   recurringItems: [],     // { id, name, amount, frequency, nextDate, category, type, color, isActive }
   savingsGoals: [],       // { id, name, targetAmount, currentAmount, deadline, color, icon }
-  debts: [],              // { id, name, balance, apr, minPayment }
+  debts: [],              // { id, name, balance, apr, minPayment, dueDay }
   budgetCategories: DEFAULT_BUDGET_CATEGORIES,
   settings: {
     monthlyIncome: '',
@@ -18,6 +19,8 @@ const INITIAL_STATE = {
     extraDebtPayment: 0,
     debtStrategy: STRATEGIES.AVALANCHE,
     currency: 'USD',
+    notificationsEnabled: false,
+    reminderDaysBefore: 3,
   },
 };
 
@@ -147,6 +150,7 @@ export function FinanceProvider({ children }) {
   const { save, load, syncFromDB, clear, dbStatus, sessionId } = useStorage();
   const loaded = useRef(false);
   const saveTimer = useRef(null);
+  const [ready, setReady] = useState(false);
 
   // 1. Load localStorage immediately (synchronous — no flash of empty state)
   // 2. Then sync from D1 in background and re-hydrate if data found
@@ -154,11 +158,16 @@ export function FinanceProvider({ children }) {
     const saved = load();
     if (saved) dispatch({ type: 'HYDRATE', payload: saved });
     loaded.current = true;
+    setReady(true);
 
     syncFromDB((dbData) => {
       dispatch({ type: 'HYDRATE', payload: dbData });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire local/OS reminder notifications for due bills, debts, and savings
+  // deadlines once data has loaded (and again on focus — see the hook).
+  useReminders(state, ready);
 
   // Debounced auto-save whenever state changes
   useEffect(() => {

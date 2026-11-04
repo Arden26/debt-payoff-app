@@ -1,8 +1,9 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { Chart, DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
 import { useFinance, useSelectors } from '../../context/FinanceContext.jsx';
-import { fmt, monthISO, daysUntil } from '../../utils/formatters.js';
+import { fmt, monthISO } from '../../utils/formatters.js';
 import { getCategoryConfig } from '../../utils/categoryConfig.js';
+import { getUpcomingReminders, REMINDER_KIND_ICON } from '../../utils/reminders.js';
 
 Chart.register(DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -17,17 +18,14 @@ export function Dashboard({ onNavigate }) {
   const netWorth = totalSaved - totalDebt;
   const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpenses) / monthIncome) * 100 : 0;
 
-  // Upcoming recurring items (next 14 days)
-  const upcoming = useMemo(() => {
-    const cutoff = new Date(today);
-    cutoff.setDate(cutoff.getDate() + 14);
-    return state.recurringItems
-      .filter((r) => r.isActive && r.type !== 'income')
-      .map((r) => ({ ...r, days: daysUntil(r.nextDate) }))
-      .filter((r) => r.days <= 14)
-      .sort((a, b) => a.days - b.days)
-      .slice(0, 5);
-  }, [state.recurringItems]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Upcoming payments & deadlines — bills, subscriptions, debts with a due
+  // day, and savings goal deadlines. Same utility the reminder
+  // notifications use, so this card always matches what you'd get notified
+  // about (see Reminders in the sidebar).
+  const upcoming = useMemo(
+    () => getUpcomingReminders(state, { withinDays: 14 }).slice(0, 5),
+    [state]
+  );
 
   // Recent transactions
   const recent = [...state.transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
@@ -140,26 +138,34 @@ export function Dashboard({ onNavigate }) {
           )}
         </div>
 
-        {/* Upcoming bills */}
+        {/* Upcoming payments & deadlines */}
         <div className="card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-slate-800 text-sm">Upcoming Bills (14 days)</h2>
-            <button onClick={() => onNavigate('subscriptions')} className="text-xs text-blue-600 hover:underline">Manage</button>
+            <h2 className="font-semibold text-slate-800 text-sm">Upcoming (14 days)</h2>
           </div>
           {upcoming.length > 0 ? (
             <div className="space-y-2">
-              {upcoming.map((r) => (
-                <div key={r.id} className="flex items-center gap-2.5 py-1.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: r.color + '20', color: r.color }}>
-                    {r.days === 0 ? '!' : r.days}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-700 truncate">{r.name}</div>
-                    <div className="text-xs text-slate-400">{r.days === 0 ? 'Today' : r.days === 1 ? 'Tomorrow' : `In ${r.days} days`}</div>
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{fmt.currency(r.amount)}</span>
-                </div>
-              ))}
+              {upcoming.map((r) => {
+                const destination = r.kind === 'debt' ? 'debt' : r.kind === 'savings' ? 'savings' : 'subscriptions';
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => onNavigate(destination)}
+                    className="w-full flex items-center gap-2.5 py-1.5 text-left hover:bg-slate-50/60 rounded-lg transition-colors -mx-1 px-1"
+                  >
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 bg-slate-100 text-slate-600">
+                      {r.days === 0 ? '!' : r.days}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-700 truncate">
+                        {REMINDER_KIND_ICON[r.kind]} {r.name}
+                      </div>
+                      <div className="text-xs text-slate-400">{r.days === 0 ? 'Today' : r.days === 1 ? 'Tomorrow' : `In ${r.days} days`}</div>
+                    </div>
+                    {r.amount != null && <span className="text-sm font-semibold text-slate-700">{fmt.currency(r.amount)}</span>}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-slate-400 text-center py-6">Nothing due in the next 14 days 🎉</p>

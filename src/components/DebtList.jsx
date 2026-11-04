@@ -82,6 +82,7 @@ export function DebtList({ debts, onEdit, onDelete, onPay }) {
                 <span>
                   {paidPct > 0 && !isFullyPaid && `${paidPct.toFixed(0)}% paid · `}
                   {!isFullyPaid && `min ${formatCurrency(debt.minPayment)}/mo`}
+                  {!isFullyPaid && debt.dueDay && ` · due ${ordinal(debt.dueDay)}`}
                 </span>
               </div>
             </div>
@@ -124,6 +125,12 @@ export function DebtList({ debts, onEdit, onDelete, onPay }) {
       </div>
     </div>
   );
+}
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function PayoffCelebration({ name, onDone }) {

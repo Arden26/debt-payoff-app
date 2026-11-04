@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext.jsx';
+import { ReminderSettings } from '../Shared/ReminderSettings.jsx';
 
 const NAV_ITEMS = [
   { id: 'dashboard',      label: 'Dashboard',     icon: '⚡' },
@@ -73,7 +74,7 @@ function DataMenu({ onClose, inline = false }) {
   return (
     <div className={inline
       ? 'bg-white overflow-hidden'
-      : 'absolute bottom-12 left-3 right-3 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden'
+      : 'absolute bottom-full mb-1 left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden'
     }>
       <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
         Data
@@ -183,6 +184,7 @@ function DataMenu({ onClose, inline = false }) {
 
 export function Sidebar({ current, onChange }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   return (
@@ -216,18 +218,37 @@ export function Sidebar({ current, onChange }) {
           ))}
         </nav>
 
-        {/* Footer with backup */}
-        <div className="p-3 border-t border-slate-100 relative">
-          {showMenu && <DataMenu onClose={() => setShowMenu(false)} />}
-          <button
-            onClick={() => setShowMenu((v) => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
-          >
-            <span className="flex items-center gap-1.5">
-              <span>💾</span> Backup / Restore
-            </span>
-            <span className="text-slate-300">{showMenu ? '▼' : '▲'}</span>
-          </button>
+        {/* Footer with reminders + backup */}
+        <div className="p-3 border-t border-slate-100 space-y-1">
+          <div className="relative">
+            {showReminders && (
+              <div className="absolute bottom-full mb-1 left-0 right-0 z-50">
+                <ReminderSettings />
+              </div>
+            )}
+            <button
+              onClick={() => { setShowReminders((v) => !v); setShowMenu(false); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <span>🔔</span> Reminders
+              </span>
+              <span className="text-slate-300">{showReminders ? '▼' : '▲'}</span>
+            </button>
+          </div>
+
+          <div className="relative">
+            {showMenu && <DataMenu onClose={() => setShowMenu(false)} />}
+            <button
+              onClick={() => { setShowMenu((v) => !v); setShowReminders(false); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            >
+              <span className="flex items-center gap-1.5">
+                <span>💾</span> Backup / Restore
+              </span>
+              <span className="text-slate-300">{showMenu ? '▼' : '▲'}</span>
+            </button>
+          </div>
           <DbIndicator />
         </div>
       </aside>
@@ -283,6 +304,9 @@ export function Sidebar({ current, onChange }) {
                 {item.label}
               </button>
             ))}
+            <div className="px-4 py-3 border-t border-slate-100">
+              <ReminderSettings inline />
+            </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-b border-slate-100">
               <span className="text-sm font-semibold text-slate-700">Data & Backup</span>
               <DbIndicator />

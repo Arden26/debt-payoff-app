@@ -5,6 +5,7 @@ const DEFAULT_VALUES = {
   balance: '',
   apr: '',
   minPayment: '',
+  dueDay: '',
 };
 
 // Suggested debt types for quick fill
@@ -32,6 +33,10 @@ export function DebtForm({ initialValues, onSave, onCancel, isEditing = false })
     if (isNaN(apr) || apr < 0 || apr > 100) errs.apr = '0–100%';
     const min = parseFloat(values.minPayment);
     if (isNaN(min) || min <= 0) errs.minPayment = 'Enter minimum payment';
+    if (values.dueDay !== '' && values.dueDay != null) {
+      const day = parseInt(values.dueDay, 10);
+      if (isNaN(day) || day < 1 || day > 31) errs.dueDay = '1–31';
+    }
     return errs;
   };
 
@@ -47,6 +52,7 @@ export function DebtForm({ initialValues, onSave, onCancel, isEditing = false })
       balance: parseFloat(values.balance),
       apr: parseFloat(values.apr),
       minPayment: parseFloat(values.minPayment),
+      dueDay: values.dueDay !== '' ? parseInt(values.dueDay, 10) : null,
     });
   };
 
@@ -146,6 +152,24 @@ export function DebtForm({ initialValues, onSave, onCancel, isEditing = false })
               Tip: typical minimum is ~2% of balance
             </p>
           )}
+        </div>
+
+        {/* Due day (optional) — lets this debt get a payment reminder like bills do */}
+        <div className="col-span-2">
+          <label className="label">Payment Due Day (optional)</label>
+          <input
+            className={`input ${errors.dueDay ? 'border-red-400' : ''}`}
+            type="number"
+            min="1"
+            max="31"
+            placeholder="e.g. 15"
+            value={values.dueDay}
+            onChange={set('dueDay')}
+          />
+          {errors.dueDay && <p className="text-xs text-red-500 mt-0.5">{errors.dueDay}</p>}
+          <p className="text-xs text-slate-400 mt-0.5">
+            Day of the month this payment is due — enables a reminder before it's due.
+          </p>
         </div>
       </div>
 
